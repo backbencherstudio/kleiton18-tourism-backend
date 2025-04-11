@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EntityType {
+  HOTEL
+  RESTAURANT
+  VISIT_AREA
+}
+
+model User {
+  id        String     @id @default(uuid())
+  fullName  String
+  email     String     @unique
+  password  String
+  role      Role       @default(USER)
+  googleId  String?
+  appleId   String?
+  image     String?
+  favorites Favorite[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Hotel {
+  id             String @id @default(uuid())
+  name           String
+  location       String
+  numberOfReview String
+  rating         String
+  bookingLink    String
+  image          String
+
+  pool       Boolean @default(false)
+  restaurant Boolean @default(false)
+  freeWifi   Boolean @default(false)
+  spa        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Restaurant {
+  id             String   @id @default(uuid())
+  name           String
+  location       String
+  numberOfReview String
+  rating         String
+  image          String
+  openTime       String
+  closeTime      String
+  details        String
+  bookingLink    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model TraditionalDish {
+  id             String   @id @default(uuid())
+  name           String
+  price          Float
+  numberOfReview String
+  rating         String
+  image          String
+  bookingLink    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model VisitArea {
+  id          String   @id @default(uuid())
+  name        String
+  location    String
+  description String
+  image       String
+  detailsLink String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Favorite {
+  id         String     @id @default(uuid())
+  user       User       @relation(fields: [userId], references: [id])
+  userId     String
+  entityId   String
+  entityType EntityType
+  createdAt  DateTime   @default(now())
+
+  @@unique([userId, entityId, entityType])
+}

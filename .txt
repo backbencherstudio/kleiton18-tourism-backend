@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or your database of choice
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EntityType {
+  HOTEL
+  RESTAURANT
+  VISIT_AREA
+}
+
+model User {
+  id              String   @id @default(uuid())
+  fullName        String
+  email           String   @unique
+  password        String
+  role            Role     @default(USER)
+  googleId        String?  // for Google login
+  appleId         String?  // for Apple login
+  favorites       Favorite[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Hotel {
+  id              String   @id @default(uuid())
+  name            String
+  location        String
+  numberOfReview  String
+  rating          String
+  bookingLink     String
+  image           String
+  amenities       Amenities
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Amenities {
+  id        String  @id @default(uuid())
+  pool      Boolean @default(false)
+  restaurant Boolean @default(false)
+  freeWifi  Boolean @default(false)
+  spa       Boolean @default(false)
+  hotel     Hotel?  @relation(fields: [hotelId], references: [id])
+  hotelId   String?
+}
+
+model Restaurant {
+  id              String   @id @default(uuid())
+  name            String
+  location        String
+  numberOfReview  String
+  rating          String
+  image           String
+  openTime        String
+  closeTime       String
+  details         String
+  bookingLink     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TraditionalDish {
+  id              String   @id @default(uuid())
+  name            String
+  price           Float
+  numberOfReview  String
+  rating          String
+  image           String
+  bookingLink     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model VisitArea {
+  id              String   @id @default(uuid())
+  name            String
+  location        String
+  description     String
+  image           String
+  detailsLink     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Favorite {
+  id         String     @id @default(uuid())
+  user       User       @relation(fields: [userId], references: [id])
+  userId     String
+  entityId   String     // ID of Hotel, Restaurant, or VisitArea
+  entityType EntityType
+  createdAt  DateTime   @default(now())
+
+  @@unique([userId, entityId, entityType])
+}
