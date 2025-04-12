@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Ucord" ALTER COLUMN "fullName" DROP NOT NULL,
+ALTER COLUMN "otp" DROP NOT NULL;
