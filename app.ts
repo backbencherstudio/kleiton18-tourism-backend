@@ -5,8 +5,10 @@ import morgan from "morgan";
 import users from "./module/users/users.routes";
 // import products from "./module/products/products.routes";
 import hotel from "./module/hotel/hotel.routes"
-
+import restaurantRoutes from "./module/restaurant/restaurant.routes";
+import TraditionalDish from "./module/traditional_dish/traditional_dish.routes";
 import path from "path";
+import visitAreaRoutes from "./module/visitarea/visitarea.routes";
 
 
 
@@ -38,7 +40,9 @@ app.use(morgan("dev"));
 
 app.use("/users", users);
 app.use("/hotel", hotel);
-
+app.use("/restaurant", restaurantRoutes);
+app.use('/traditional-dish', TraditionalDish)
+app.use("/visit-area", visitAreaRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
