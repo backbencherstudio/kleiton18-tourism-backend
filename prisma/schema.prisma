@@ -39,14 +39,14 @@ model User {
 }
 
 model Ucord {
-  id            String   @id @default(uuid())
-  fullName      String?
-  email         String   @unique
-  otp           String?
-  otpExpiresAt  DateTime?
+  id                        String    @id @default(uuid())
+  fullName                  String?
+  email                     String    @unique
+  otp                       String?
+  otpExpiresAt              DateTime?
   passwordResetAllowedUntil DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 }
 
 model Hotel {
@@ -65,6 +65,11 @@ model Hotel {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([location])
+  @@index([bookingLink])
+  @@index([createdAt])
 }
 
 model Restaurant {
