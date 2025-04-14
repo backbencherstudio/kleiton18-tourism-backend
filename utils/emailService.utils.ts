@@ -15,8 +15,9 @@ const sendEmail = async (
   htmlContent: string
 ): Promise<void> => {
   const mailTransporter = nodemailer.createTransport({
-    host: "smtp.mailtrap.io", // Update if you're using a different SMTP provider
+    // host: "smtp.mailtrap.io", // Update if you're using a different SMTP provider
     service: "gmail",
+    port: 587,
     auth: {
       user: process.env.NODE_MAILER_USER || "",
       pass: process.env.NODE_MAILER_PASSWORD || "",
@@ -24,7 +25,7 @@ const sendEmail = async (
   });
 
   const mailOptions = {
-    from: `"kleiton18" <2003monowar@gmail.com>`,
+    from: `"kleiton18" <tqmhosain@gmail.com>`,
     to,
     subject,
     html: htmlContent,

@@ -297,6 +297,98 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const {
+      page = "1",
+      limit = "10",
+      fullName = "",
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Validate pagination parameters
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Validate sorting parameters
+    const allowedSortFields = ["fullName", "email", "createdAt"];
+    const validSortBy = allowedSortFields.includes(sortBy as string)
+      ? sortBy
+      : "createdAt";
+    const validSortOrder = ["asc", "desc"].includes(sortOrder as string)
+      ? sortOrder
+      : "desc";
+
+    // Build where clause
+    const whereClause = {
+      role: { not: "ADMIN" as const },
+      ...(fullName && {
+        fullName: {
+          contains: fullName as string,
+          mode: "insensitive" as const,
+        },
+      }),
+    };
+
+    // Define select fields
+    const selectFields = {
+      id: true,
+      fullName: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      role: true,
+    };
+
+    // Execute queries in parallel
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: whereClause,
+        skip,
+        take: limitNum,
+        orderBy: { [validSortBy as string]: validSortOrder },
+        select: selectFields,
+      }),
+      prisma.user.count({ where: whereClause }),
+    ]);
+
+    // Process user data efficiently
+    const usersWithImageUrl = users.map(({ image, ...user }) => ({
+      ...user,
+      image: image ? getImageUrl(image.replace(/^\/?uploads\//, "")) : null,
+    }));
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    // Return structured response
+    res.status(200).json({
+      success: true,
+      data: usersWithImageUrl,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        nextPage: pageNum < totalPages,
+        // hasPreviousPage: pageNum > 1,
+      },
+      meta: {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      },
+    });
+  } catch (error) {
+    console.error("getAllUsers error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 // rm -rf node_modules/.prisma
 // rm -rf node_modules/@prisma/client
 // npm install
