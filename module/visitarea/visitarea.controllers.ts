@@ -175,3 +175,11 @@ export const getAllVisitAreas = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+// - POST /api/favorites/add
+
+// - Adds an item to user's favorites
+// - Required body: { entityId: string, entityType: "HOTEL" | "RESTAURANT" | "VISIT_AREA" }
+// - DELETE /api/favorites/remove/:entityId/:entityType

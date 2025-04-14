@@ -9,6 +9,7 @@ import restaurantRoutes from "./module/restaurant/restaurant.routes";
 import TraditionalDish from "./module/traditional_dish/traditional_dish.routes";
 import path from "path";
 import visitAreaRoutes from "./module/visitarea/visitarea.routes";
+import favoriteRoutes from "./module/favorite/favorite.routes";
 
 
 
@@ -44,6 +45,7 @@ app.use("/restaurant", restaurantRoutes);
 app.use('/traditional-dish', TraditionalDish)
 app.use("/visit-area", visitAreaRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/favorites", favoriteRoutes);
 
 
 app.use((req: Request, res: Response, next: NextFunction) => {
