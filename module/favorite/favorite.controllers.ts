@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient, EntityType } from "@prisma/client";
+import { getImageUrl } from "../../utils/base_utl";
 
 const prisma = new PrismaClient();
 
@@ -110,53 +111,125 @@ export const removeFromFavorites = async (req: Request, res: Response) => {
 export const getUserFavorites = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
-    const { entityType } = req.query;
 
-    const filters: any = {
-      userId,
-      ...(entityType && { entityType: entityType as EntityType }),
-    };
+    const entityTypes = ["HOTEL", "RESTAURANT", "VISIT_AREA", "DISH"] as const;
 
-    const favorites = await prisma.favorite.findMany({
-      where: filters,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    });
+    const results = await Promise.all(
+      entityTypes.map(async (type) => {
+        const favorites = await prisma.favorite.findMany({
+          where: { userId, entityType: type },
+          select: { entityId: true },
+        });
 
-    // Fetch detailed information for each favorite
-    const detailedFavorites = await Promise.all(
-      favorites.map(async (favorite) => {
-        const entityDetails = await getEntityById(
-          favorite.entityId,
-          favorite.entityType
-        );
+        const ids = favorites.map(f => f.entityId);
+
+        if (ids.length === 0) return { type, items: [] };
+
+        let entities: any[] = [];
+
+        switch (type) {
+          case "HOTEL":
+            entities = await prisma.hotel.findMany({
+              where: { id: { in: ids } },
+              select: {
+                id: true,
+                name: true,
+                location: true,
+                numberOfReview: true,
+                rating: true,
+                bookingLink: true,
+                image: true,
+                pool: true,
+                restaurant: true,
+                freeWifi: true,
+                spa: true,
+                createdAt: true,
+              },
+            });
+            break;
+
+          case "RESTAURANT":
+            entities = await prisma.restaurant.findMany({
+              where: { id: { in: ids } },
+              select: {
+                id: true,
+                name: true,
+                location: true,
+                numberOfReview: true,
+                rating: true,
+                image: true,
+                openTime: true,
+                closeTime: true,
+                details: true,
+                bookingLink: true,
+                createdAt: true,
+              },
+            });
+            break;
+
+          case "VISIT_AREA":
+            entities = await prisma.visitArea.findMany({
+              where: { id: { in: ids } },
+              select: {
+                id: true,
+                name: true,
+                location: true,
+                description: true,
+                image: true,
+                detailsLink: true,
+                createdAt: true,
+              },
+            });
+            break;
+
+          case "DISH":
+            entities = await prisma.traditionalDish.findMany({
+              where: { id: { in: ids } },
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                numberOfReview: true,
+                rating: true,
+                image: true,
+                bookingLink: true,
+                createdAt: true,
+              },
+            });
+            break;
+        }
+
         return {
-          ...favorite,
-          entityDetails,
+          type,
+          items: entities.map(e => ({
+            ...e,
+            image: e.image ? getImageUrl(e.image) : null,
+          })),
         };
       })
     );
 
+    // Combine results into a structured object
+    const finalData = results.reduce((acc, curr) => {
+      acc[curr.type.toLowerCase()] = curr.items;
+      return acc;
+    }, {} as Record<string, any[]>);
+
     res.status(200).json({
       success: true,
-      message: "Favorites fetched successfully",
-      data: detailedFavorites,
+      message: "Favorites grouped by entity type",
+      data: finalData,
     });
   } catch (error) {
+    console.error("getUserFavorites error:", error);
     res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };
+
+
 
 
 async function getEntityById(id: string, entityType: EntityType) {
@@ -167,6 +240,8 @@ async function getEntityById(id: string, entityType: EntityType) {
       return prisma.restaurant.findUnique({ where: { id } });
     case "VISIT_AREA":
       return prisma.visitArea.findUnique({ where: { id } });
+    case "DISH":
+      return prisma.traditionalDish.findUnique({ where: { id } });
     default:
       return null;
   }
