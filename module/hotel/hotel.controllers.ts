@@ -118,28 +118,19 @@ export const deleteHotel = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getAllHotels = async (req: Request, res: Response) => {
   try {
     const {
-      name,
-      location,
-      numberOfReview,
-      rating,
-      bookingLink,
-      pool,
-      restaurant,
-      freeWifi,
-      spa,
-      search,
-      page = "1",
-      limit = "10",
+      name, location, numberOfReview, rating,
+      bookingLink, pool, restaurant, freeWifi,
+      spa, search, page = "1", limit = "10"
     } = req.query;
 
     const pageNumber = parseInt(page as string, 10);
     const take = parseInt(limit as string, 10);
     const skip = (pageNumber - 1) * take;
 
-    // Create filters for the query
     const filters: any = {
       ...(name && { name: { contains: String(name), mode: "insensitive" } }),
       ...(location && { location: { contains: String(location), mode: "insensitive" } }),
@@ -159,14 +150,14 @@ export const getAllHotels = async (req: Request, res: Response) => {
       }),
     };
 
-    // Fetch hotels and count in parallel for performance
+    // Fetch all hotels in one go
     const [hotels, totalCount] = await Promise.all([
       prisma.hotel.findMany({
         where: filters,
         orderBy: { createdAt: "desc" },
         skip,
         take,
-        select: { // Select only necessary fields for faster queries
+        select: {
           id: true,
           name: true,
           location: true,
@@ -184,24 +175,42 @@ export const getAllHotels = async (req: Request, res: Response) => {
       prisma.hotel.count({ where: filters }),
     ]);
 
-    const formattedHotels = hotels.map((hotel) => ({
+    let favoriteIdsSet = new Set<string>();
+
+    if (req.user) {
+      // Fetch all favorite hotel IDs for this user in one query
+      const userFavorites = await prisma.favorite.findMany({
+        where: {
+          userId: req.user.id,
+          entityType: 'HOTEL',
+          entityId: { in: hotels.map(h => h.id) }
+        },
+        select: { entityId: true }
+      });
+
+      favoriteIdsSet = new Set(userFavorites.map(fav => fav.entityId));
+    }
+
+    const hotelsWithFavoriteStatus = hotels.map(hotel => ({
       ...hotel,
       image: getImageUrl(hotel.image),
+      isFavorite: favoriteIdsSet.has(hotel.id),
     }));
 
-    const totalPages = take ? Math.ceil(totalCount / take) : 1;
+    const totalPages = Math.ceil(totalCount / take);
 
     res.status(200).json({
       success: true,
       message: "Hotels fetched successfully",
-      data: formattedHotels,
+      data: hotelsWithFavoriteStatus,
       pagination: {
         totalData: totalCount,
         page: pageNumber,
         totalPages,
-        nextPage: take ? pageNumber < totalPages : false,
+        nextPage: pageNumber < totalPages,
       },
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -209,5 +218,4 @@ export const getAllHotels = async (req: Request, res: Response) => {
     });
   }
 };
-
 
