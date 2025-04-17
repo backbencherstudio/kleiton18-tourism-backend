@@ -105,6 +105,77 @@ export const deleteVisitArea = async (req: Request, res: Response) => {
   }
 };
 
+// export const getAllVisitAreas = async (req: Request, res: Response) => {
+//   try {
+//     const {
+//       name,
+//       location,
+//       search,
+//       page = "1",
+//       limit = "10",
+//     } = req.query;
+
+//     const pageNumber = parseInt(page as string, 10);
+//     const take = parseInt(limit as string, 10);
+//     const skip = (pageNumber - 1) * take;
+
+//     const filters: any = {
+//       ...(name && { name: { contains: String(name), mode: "insensitive" } }),
+//       ...(location && { location: { contains: String(location), mode: "insensitive" } }),
+//       ...(search && {
+//         OR: [
+//           { name: { contains: String(search), mode: "insensitive" } },
+//           { location: { contains: String(search), mode: "insensitive" } },
+//           { description: { contains: String(search), mode: "insensitive" } },
+//         ],
+//       }),
+//     };
+
+//     const [visitAreas, totalCount] = await Promise.all([
+//       prisma.visitArea.findMany({
+//         where: filters,
+//         orderBy: { createdAt: "desc" },
+//         skip,
+//         take,
+//         select: {
+//           id: true,
+//           name: true,
+//           location: true,
+//           description: true,
+//           detailsLink: true,
+//           image: true,
+//           createdAt: true,
+//         },
+//       }),
+//       prisma.visitArea.count({ where: filters }),
+//     ]);
+
+//     const formattedVisitAreas = visitAreas.map((area) => ({
+//       ...area,
+//       image: getImageUrl(area.image),
+//     }));
+
+//     const totalPages = take ? Math.ceil(totalCount / take) : 1;
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Visit areas fetched successfully",
+//       data: formattedVisitAreas,
+//       pagination: {
+//         totalData: totalCount,
+//         page: pageNumber,
+//         totalPages,
+//         nextPage: take ? pageNumber < totalPages : false,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error instanceof Error ? error.message : "Internal server error",
+//     });
+//   }
+// };
+
 export const getAllVisitAreas = async (req: Request, res: Response) => {
   try {
     const {
@@ -150,9 +221,27 @@ export const getAllVisitAreas = async (req: Request, res: Response) => {
       prisma.visitArea.count({ where: filters }),
     ]);
 
+    let favoriteIdsSet = new Set<string>();
+
+    if ((req as any).user) {
+      const userId = (req as any).user.id;
+
+      const userFavorites = await prisma.favorite.findMany({
+        where: {
+          userId,
+          entityType: "VISIT_AREA",
+          entityId: { in: visitAreas.map((area) => area.id) },
+        },
+        select: { entityId: true },
+      });
+
+      favoriteIdsSet = new Set(userFavorites.map((fav) => fav.entityId));
+    }
+
     const formattedVisitAreas = visitAreas.map((area) => ({
       ...area,
       image: getImageUrl(area.image),
+      isFavorite: favoriteIdsSet.has(area.id),
     }));
 
     const totalPages = take ? Math.ceil(totalCount / take) : 1;
@@ -175,7 +264,6 @@ export const getAllVisitAreas = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 
 // - POST /api/favorites/add
