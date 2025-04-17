@@ -10,6 +10,7 @@ import {
   sendForgotPasswordOTP,
 } from "../../utils/emailService.utils";
 
+
 const prisma = new PrismaClient();
 
 export const createUser = async (req: Request, res: Response) => {
